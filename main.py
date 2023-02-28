@@ -55,6 +55,19 @@ class Channel:
         with open(filename, 'w') as f:
             json.dump(data, f)
 
+    def __str__(self):
+        return f"Youtube-канал: {self.title}"
+
+    def __add__(self, other):
+        return self.subscriber_count + other.subscriber_count
+
+    def __gt__(self, other):
+        return self.subscriber_count > other.subscriber_count
+
+    def __lt__(self, other):
+        return self.subscriber_count < other.subscriber_count
+
+
 if __name__ == "__main__":
     vdud = Channel('UCMCgOm8GZkHp8zJ6l7_hIuA')
 
