@@ -1,22 +1,20 @@
-import pytest
 from main import Channel
 
-@pytest.fixture(params=['UCMCgOm8GZkHp8zJ6l7_hIuA', 'UCBPCXV9oYpYkGGK6DZHDGKw'])
-def channel(request):
-    return Channel(request.param)
+class TestChannel:
 
-class TestItem:
+    def test_str(self):
+        ch1 = Channel('UCMCgOm8GZkHp8zJ6l7_hIuA')
+        assert str(ch1) == "Youtube-канал: " + ch1.title
 
-    def test_str(self, channel):
-        assert str(channel) == "Youtube-канал: " + channel.title
+    def test_add(self):
+        ch1 = Channel('UCMCgOm8GZkHp8zJ6l7_hIuA')
+        ch2 = Channel('UC1eFXmJNkjITxPFWTy6RsWg')
+        assert (ch1 + ch2) == ch1.url + ' ' + ch2.url
 
-    def test_add(self, channel):
-        ch2 = Channel('UCBPCXV9oYpYkGGK6DZHDGKw')
-        assert (channel + ch2) == channel.url + ' ' + ch2.url
-
-    def test_gt_lt(self, channel):
-        ch2 = Channel('UCBPCXV9oYpYkGGK6DZHDGKw')
-        assert channel >= ch2
-        assert not channel <= ch2
+    def test_gt_lt(self):
+        ch1 = Channel('UCMCgOm8GZkHp8zJ6l7_hIuA')
+        ch2 = Channel('UC1eFXmJNkjITxPFWTy6RsWg')
+        assert ch1 > ch2
+        assert not ch1 < ch2
 
 
