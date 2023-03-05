@@ -67,20 +67,44 @@ class Channel:
     def __lt__(self, other):
         return self.subscriber_count < other.subscriber_count
 
+class Video:
+    def __init__(self, video_id):
+        youtube = self.get_service()
+        video_info = youtube.videos().list(
+            id=video_id, part='snippet,statistics'
+        ).execute()
+        snippet = video_info['items'][0]['snippet']
+        statistics = video_info['items'][0]['statistics']
 
-if __name__ == "__main__":
-    ch1 = Channel('UCMCgOm8GZkHp8zJ6l7_hIuA')
-    ch2 = Channel('UC1eFXmJNkjITxPFWTy6RsWg')
+        self.video_id = video_id
+        self.title = snippet['title']
+        self.view_count = int(statistics['viewCount'])
+        self.like_count = int(statistics['likeCount'])
 
-    print(ch1)
-    print(ch2)
+    @staticmethod
+    def get_service():
+        youtube = build('youtube', 'v3', developerKey=api_key)
+        return youtube
 
-    print(ch1 > ch2)
-    print(ch1 < ch2)
-    print(ch1 + ch2)
+    def __str__(self):
+        return f"{self.title}"
 
 
+class PLVideo(Video):
+    def __init__(self, video_id, playlist_id):
+        super().__init__(video_id)
+        self.playlist_id = playlist_id
+        self.playlist_title = self.get_playlist_title(playlist_id)
 
+    def get_playlist_title(self, playlist_id):
+        youtube = self.get_service()
+        playlist_info = youtube.playlists().list(
+            id=playlist_id, part='snippet'
+        ).execute()
+        return playlist_info['items'][0]['snippet']['title']
+
+    def __str__(self):
+        return f"{self.title} ({self.playlist_title})"
 
 
 

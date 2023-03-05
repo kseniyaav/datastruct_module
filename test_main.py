@@ -1,4 +1,5 @@
-from main import Channel
+import pytest
+from main import Channel, Video, PLVideo
 
 class TestChannel:
 
