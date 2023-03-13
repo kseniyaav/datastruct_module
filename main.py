@@ -1,6 +1,9 @@
 import os
 import json
+import datetime
+import isodate
 
+from abc import ABC, abstractmethod
 from googleapiclient.discovery import build
 from dotenv import load_dotenv
 
@@ -8,9 +11,31 @@ load_dotenv()
 
 api_key = os.getenv('API_KEY')
 
+
+class YoutubeAPI:
+    def __init__(self, api_key):
+        self.api_key = api_key
+        self.service = build('youtube', 'v3', developerKey=api_key)
+
+    def get_video_info(self, video_id):
+        video_info = self.service.videos().list(
+            part='snippet, statistics',
+            id=video_id
+        ).execute()
+        return video_info
+
+    def get_video_duration(self, video_id):
+        video_info = self.service.videos().list(id=video_id, part='contentDetails').execute()
+        duration = video_info['items'][0]['contentDetails']['duration']
+        return isodate.parse_duration(duration)
+
+    def get_service(self):
+        return self.service
+
+
 class Channel:
     def __init__(self, channel_id_arg):
-        youtube = self.get_service()
+        youtube = YoutubeAPI(api_key).get_service()
         channel_info = youtube.channels().list(
             id=channel_id_arg, part='snippet,statistics'
         ).execute()
@@ -25,11 +50,6 @@ class Channel:
         self.video_count = int(statistics['videoCount'])
         self.view_count = int(statistics['viewCount'])
 
-    @staticmethod
-    def get_service():
-        youtube = build('youtube', 'v3', developerKey=api_key)
-        return youtube
-
     @property
     def channel_id(self):
         return self._channel_id
@@ -40,7 +60,7 @@ class Channel:
         self.url = f'https://www.youtube.com/channel/{new_channel_id}'
 
     def print_info(self):
-        return self.channel_info
+        pass
 
     def to_json(self, filename):
         data = {
@@ -67,9 +87,10 @@ class Channel:
     def __lt__(self, other):
         return self.subscriber_count < other.subscriber_count
 
+
 class Video:
     def __init__(self, video_id):
-        youtube = self.get_service()
+        youtube = YoutubeAPI(api_key).get_service()
         video_info = youtube.videos().list(
             id=video_id, part='snippet,statistics'
         ).execute()
@@ -79,25 +100,21 @@ class Video:
         self.video_id = video_id
         self.title = snippet['title']
         self.view_count = int(statistics['viewCount'])
+        self.duration = YoutubeAPI(api_key).get_video_duration(video_id)
         self.like_count = int(statistics['likeCount'])
-
-    @staticmethod
-    def get_service():
-        youtube = build('youtube', 'v3', developerKey=api_key)
-        return youtube
 
     def __str__(self):
         return f"{self.title}"
 
 
 class PLVideo(Video):
-    def __init__(self, video_id, playlist_id):
+    def __init__(self, video_id, playlist_id, duration=None, like_count=None):
         super().__init__(video_id)
         self.playlist_id = playlist_id
         self.playlist_title = self.get_playlist_title(playlist_id)
 
     def get_playlist_title(self, playlist_id):
-        youtube = self.get_service()
+        youtube = YoutubeAPI(api_key).get_service()
         playlist_info = youtube.playlists().list(
             id=playlist_id, part='snippet'
         ).execute()
@@ -107,4 +124,32 @@ class PLVideo(Video):
         return f"{self.title} ({self.playlist_title})"
 
 
+class PlayList:
+    def __init__(self, playlist_id):
+        youtube = YoutubeAPI(api_key).get_service()
+        playlist_info = youtube.playlists().list(
+            id=playlist_id, part='snippet'
+        ).execute()
+        if 'items' in playlist_info and len(playlist_info['items']) > 0:
+            self._playlist_id = playlist_id
+            self.title = playlist_info['items'][0]['snippet']['title']
+            self.url = f"https://www.youtube.com/playlist?list={playlist_id}"
+            self._videos = []
+        else:
+            raise ValueError(f"Playlist with ID {playlist_id} not found")
+
+    def add_video(self, video_id):
+        self._videos.append(PLVideo(video_id, self._playlist_id))
+
+    @property
+    def total_duration(self):
+        total_seconds = sum([video.duration.total_seconds() for video in self._videos])
+        return datetime.timedelta(seconds=total_seconds)
+
+    def show_best_video(self):
+        if len(self._videos) == 0:
+            print("No videos found in playlist")
+        else:
+            best_video = max(self._videos, key=lambda video: video.like_count)
+            print(f"https://youtube.com/{best_video.video_id}")
 
