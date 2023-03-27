@@ -94,16 +94,15 @@ class Video:
         video_info = youtube.videos().list(
             id=video_id, part='snippet,statistics'
         ).execute()
-        if 'statistics' not in video_info['items'][0]:
-            raise ValueError(f"Video with ID {video_id} not found")
-        snippet = video_info['items'][0]['snippet']
-        statistics = video_info['items'][0]['statistics']
-
-        self.video_id = video_id
-        self.title = snippet['title']
-        self.view_count = int(statistics['viewCount'])
-        self.duration = YoutubeAPI(api_key).get_video_duration(video_id)
-        self.like_count = int(statistics['likeCount'])
+        if not video_info['items']:
+            self.title = None
+            self.like_count = None
+        else:
+            statistics = video_info['items'][0]['statistics']
+            self.title = video_info['items'][0]['snippet']['title']
+            self.view_count = int(statistics['viewCount'])
+            self.duration = YoutubeAPI(api_key).get_video_duration(video_id)
+            self.like_count = int(statistics.get('likeCount', 0))
 
     def __str__(self):
         return f"{self.title}"
