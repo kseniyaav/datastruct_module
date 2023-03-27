@@ -94,6 +94,8 @@ class Video:
         video_info = youtube.videos().list(
             id=video_id, part='snippet,statistics'
         ).execute()
+        if 'statistics' not in video_info['items'][0]:
+            raise ValueError(f"Video with ID {video_id} not found")
         snippet = video_info['items'][0]['snippet']
         statistics = video_info['items'][0]['statistics']
 
